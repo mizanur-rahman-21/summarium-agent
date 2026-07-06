@@ -25,5 +25,5 @@ jobs:
 
       - name: HTML validation (html-validate)
         run: |
-          npm install -g @html-validate/cli
-          npx html-validate "summarium.html"
+          npm install -g html-validate
+          html-validate "summarium.html"
