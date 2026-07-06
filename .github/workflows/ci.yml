@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secret scan (simple patterns)
+        run: |
+          set -e
+          echo "Scanning repository for obvious secret patterns..."
+          # GCP API key pattern (AIza...) and some long token prefixes (AQ.)
+          if grep -R --line-number -E "AIza[0-9A-Za-z_-]{35}|AQ\.[A-Za-z0-9_-]{20,}" . ; then
+            echo "Potential secret found. Please remove secrets from commits."; exit 1
+          else
+            echo "No obvious secrets found."
+          fi
+
+      - name: HTML validation (html-validate)
+        run: |
+          npm install -g @html-validate/cli
+          npx html-validate "summarium.html"

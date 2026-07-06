@@ -1,0 +1,16 @@
+/.env
+node_modules/
+dist/
+build/
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.key
+*.pem
+*.p12
+coverage/
+/.cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
