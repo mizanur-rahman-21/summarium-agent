@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summarium — Document Summarization Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #12151b;
+    --ink-panel: #1a1f28;
+    --ink-panel-2: #202632;
+    --hairline: #2c3340;
+    --paper: #ece7de;
+    --paper-dim: #a9a79f;
+    --gold: #d4a24e;
+    --gold-dim: #8a6c38;
+    --teal: #5fb3a3;
+    --red-flag: #c1685a;
+    --radius: 3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #1b2029 0%, transparent 60%),
+      var(--ink);
+    color: var(--paper);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+  }
+  ::selection{ background: var(--gold-dim); color: var(--paper);}
+
+  a{color:var(--teal);}
+
+  .scaffold{
+    max-width:1240px;
+    margin:0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ---------- HEADER / HERO ---------- */
+  header.hero{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:1px solid var(--hairline);
+    padding-bottom:28px;
+    margin-bottom:36px;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .hero-mark{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    color: var(--gold);
+    text-transform:uppercase;
+    margin-bottom:10px;
+    display:block;
+  }
+  h1.title{
+    font-family:'IBM Plex Serif', serif;
+    font-weight:600;
+    font-size:clamp(32px, 4vw, 52px);
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  h1.title em{
+    font-style: italic;
+    color: var(--gold);
+    font-weight:400;
+  }
+  .hero-sub{
+    max-width:420px;
+    color: var(--paper-dim);
+    font-size:14.5px;
+    text-align:right;
+  }
+  .hero-sub .folio{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--gold-dim);
+    display:block;
+    margin-top:6px;
+  }
+
+  /* ---------- LAYOUT ---------- */
+  .desk{
+    display:grid;
+    grid-template-columns: minmax(320px, 420px) 1fr;
+    gap: 28px;
+    align-items:start;
+  }
+  @media (max-width: 880px){
+    .desk{ grid-template-columns: 1fr; }
+  }
+
+  .panel{
+    background: var(--ink-panel);
+    border:1px solid var(--hairline);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+
+  .panel-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color: var(--paper-dim);
+    margin: 0 0 14px 0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel-label::before{
+    content:'';
+    width:6px;height:6px;
+    background: var(--gold);
+    display:inline-block;
+    border-radius:1px;
+  }
+
+  textarea, select, input[type=text]{
+    width:100%;
+    background: var(--ink);
+    border:1px solid var(--hairline);
+    color: var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    padding:12px 14px;
+    border-radius: var(--radius);
+    resize:vertical;
+  }
+  textarea:focus, select:focus, input:focus{
+    outline: 2px solid var(--gold-dim);
+    outline-offset: 1px;
+    border-color: var(--gold-dim);
+  }
+  textarea#sourceText{
+    min-height:260px;
+    line-height:1.6;
+  }
+
+  .field{ margin-bottom:16px; }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    color: var(--paper-dim);
+    margin-bottom:6px;
+  }
+  .field-row{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+  }
+
+  .upload-line{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+    font-size:12.5px;
+    color: var(--paper-dim);
+  }
+  .upload-line input[type=file]{
+    font-size:12px;
+    color: var(--paper-dim);
+    max-width: 220px;
+  }
+  .file-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color: var(--teal);
+  }
+
+  button#summarizeBtn{
+    width:100%;
+    background: var(--gold);
+    color: #1a1206;
+    border:none;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    padding:13px 18px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    letter-spacing:0.01em;
+    margin-top: 6px;
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+  button#summarizeBtn:hover{ background:#e2b565; }
+  button#summarizeBtn:active{ transform: translateY(1px); }
+  button#summarizeBtn:disabled{
+    background: var(--hairline);
+    color: var(--paper-dim);
+    cursor:not-allowed;
+  }
+
+  .key-warning{
+    margin-top:14px;
+    font-size:11.5px;
+    color: var(--red-flag);
+    border-top:1px dashed var(--hairline);
+    padding-top:12px;
+    line-height:1.5;
+  }
+
+  /* ---------- OUTPUT / MANUSCRIPT ---------- */
+  .manuscript{
+    background: var(--ink-panel);
+    border:1px solid var(--hairline);
+    border-radius: var(--radius);
+    padding: 34px 38px;
+    min-height: 520px;
+    position:relative;
+  }
+  .manuscript::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; bottom:0;
+    width:1px;
+    background: linear-gradient(var(--hairline), transparent);
+  }
+
+  .empty-state{
+    height:460px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    color: var(--paper-dim);
+    gap:10px;
+  }
+  .empty-state .glyph{
+    font-family:'IBM Plex Serif', serif;
+    font-style:italic;
+    font-size:44px;
+    color: var(--hairline);
+  }
+  .empty-state p{ max-width:320px; font-size:13.5px; margin:0;}
+
+  .loading-state{
+    height:460px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    color: var(--gold);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+  }
+  .spinner{
+    width:26px;height:26px;
+    border-radius:50%;
+    border: 2px solid var(--hairline);
+    border-top-color: var(--gold);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+
+  .doc-eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color: var(--gold-dim);
+    margin-bottom:6px;
+  }
+  .doc-title{
+    font-family:'IBM Plex Serif', serif;
+    font-size:26px;
+    font-weight:600;
+    margin: 0 0 4px 0;
+  }
+  .doc-meta{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color: var(--paper-dim);
+    border-bottom:1px solid var(--hairline);
+    padding-bottom:18px;
+    margin-bottom:22px;
+  }
+  .doc-meta span b{ color: var(--paper); font-weight:500; }
+
+  .section-block{ margin-bottom:26px; }
+  .section-heading{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color: var(--teal);
+    margin-bottom:12px;
+  }
+
+  ul.key-points{
+    list-style:none;
+    margin:0; padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  ul.key-points li{
+    position:relative;
+    padding-left:22px;
+    font-size:14.5px;
+    line-height:1.55;
+  }
+  ul.key-points li::before{
+    content:'—';
+    position:absolute;
+    left:0;
+    color: var(--gold);
+  }
+
+  .summary-text p{
+    font-size:15px;
+    line-height:1.75;
+    color: #ded8cc;
+    margin: 0 0 14px 0;
+  }
+  .summary-text p:first-letter{
+    font-family:'IBM Plex Serif', serif;
+  }
+
+  .takeaway{
+    background: var(--ink-panel-2);
+    border-left: 3px solid var(--gold);
+    padding: 14px 18px;
+    font-size:14px;
+    font-style: italic;
+    font-family:'IBM Plex Serif', serif;
+    color: var(--paper);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+
+  .error-box{
+    border:1px solid var(--red-flag);
+    background: rgba(193,104,90,0.08);
+    color: var(--red-flag);
+    padding:14px 16px;
+    border-radius: var(--radius);
+    font-size:13px;
+    margin-bottom:18px;
+  }
+
+  footer{
+    margin-top:40px;
+    text-align:center;
+    color: var(--paper-dim);
+    font-size:11.5px;
+    font-family:'IBM Plex Mono', monospace;
+    letter-spacing:0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="scaffold">
+
+  <header class="hero">
+    <div>
+      <span class="hero-mark">Field notes on long documents</span>
+      <h1 class="title">Summ<em>arium</em></h1>
+    </div>
+    <div class="hero-sub">
+      
+      <span class="folio">Agent runs on Gemini 2.5 Flash</span>
+      <span class="folio">Developed by Mizanur Rahman</span>
+    </div>
+  </header>
+
+  <div class="desk">
+    <!-- INPUT PANEL -->
+    <div class="panel">
+      <p class="panel-label">Source document</p>
+
+      <div class="upload-line">
+        <input type="file" id="fileInput" accept=".txt,.md">
+        <span class="file-tag" id="fileTag"></span>
+      </div>
+
+      <div class="field">
+        <textarea id="sourceText" placeholder="Paste the full text of the document here — an abstract, a report, an article, a contract excerpt...&#10;&#10;(.txt/.md upload also supported above)"></textarea>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="lengthSelect">Summary length</label>
+          <select id="lengthSelect">
+            <option value="Brief (2-3 sentences)">Brief (2–3 sentences)</option>
+            <option value="Standard (1 paragraph)" selected>Standard (1 paragraph)</option>
+            <option value="Detailed (multiple paragraphs with bullet points)">Detailed (multi-paragraph)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="audienceSelect">Audience</label>
+          <select id="audienceSelect">
+            <option value="general reader" selected>General reader</option>
+            <option value="technical expert in the field">Technical expert</option>
+            <option value="explain like I'm 5">ELI5</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="focusInput">Focus area (optional)</label>
+        <input type="text" id="focusInput" placeholder="e.g. only the methodology / only the results">
+      </div>
+
+      <div class="field">
+        <label for="langInput">Output language (optional)</label>
+        <input type="text" id="langInput" placeholder="e.g. English, বাংলা — defaults to source language">
+      </div>
+
+      <button id="summarizeBtn">Summarize document</button>
+
+      
+    </div>
+
+    <!-- OUTPUT PANEL -->
+    <div class="manuscript" id="outputPanel">
+      <div class="empty-state" id="emptyState">
+        <span class="glyph">§</span>
+        <p>Your structured summary will be set here — title, key points, main summary, and the takeaway, in that order.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>FAIR-RAG adjacent tooling · client-side agent · no documents are stored</footer>
+</div>
+
+<script>
+const GEMINI_API_KEY = ""; // API key removed from repo — set at runtime or via environment
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+const SYSTEM_PROMPT = `You are an expert Document Summarization Assistant. Your role is to analyze input content (PDF documents or long text passages) and generate clear, accurate, and well-structured summaries.
+
+## SUMMARIZATION PROCESS
+1. Read and comprehend the entire input before summarizing
+2. Identify the core thesis/main argument
+3. Extract key supporting points, data, and evidence
+4. Note any important conclusions or recommendations
+5. Preserve critical facts, figures, names, and dates
+6. Maintain the original meaning and intent — do not introduce bias or personal interpretation
+
+## RULES & CONSTRAINTS
+- Keep summaries objective — do not add opinions or external information
+- Preserve technical terminology when summarizing specialized content, but define complex terms briefly if needed
+- Do not omit critical warnings, disclaimers, or caveats present in the original text
+- Adjust tone to match source material (formal for academic/legal, conversational for casual articles)
+
+## OUTPUT FORMAT
+Respond ONLY with a single valid JSON object, no markdown fences, no preamble, matching this exact shape:
+{
+  "title": "string - subject matter of the document",
+  "doc_type": "string - e.g. academic paper, article, report, legal document",
+  "key_points": ["string", "string", "... 3 to 7 bullet points depending on complexity"],
+  "summary": ["string paragraph 1", "string paragraph 2 (optional)"],
+  "takeaway": "string - final insight, recommendation, or outcome, or empty string if not applicable"
+}`;
+
+const fileInput = document.getElementById('fileInput');
+const fileTag = document.getElementById('fileTag');
+const sourceText = document.getElementById('sourceText');
+const summarizeBtn = document.getElementById('summarizeBtn');
+const outputPanel = document.getElementById('outputPanel');
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    sourceText.value = evt.target.result;
+    fileTag.textContent = file.name;
+  };
+  reader.onerror = () => {
+    fileTag.textContent = 'could not read file';
+  };
+  reader.readAsText(file);
+});
+
+function renderEmpty() {
+  outputPanel.innerHTML = `
+    <div class="empty-state">
+      <span class="glyph">§</span>
+      <p>Your structured summary will be set here — title, key points, main summary, and the takeaway, in that order.</p>
+    </div>`;
+}
+
+function renderLoading() {
+  outputPanel.innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div>reading the document…</div>
+    </div>`;
+}
+
+function renderError(message) {
+  outputPanel.innerHTML = `
+    <div class="error-box">Couldn't produce a summary: ${escapeHtml(message)}</div>
+    <div class="empty-state" style="height:340px;">
+      <span class="glyph">§</span>
+      <p>Fix the issue above and try again.</p>
+    </div>`;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderSummary(data, meta) {
+  const keyPointsHtml = (data.key_points || [])
+    .map(p => `<li>${escapeHtml(p)}</li>`).join('');
+  const summaryHtml = (Array.isArray(data.summary) ? data.summary : [data.summary])
+    .filter(Boolean)
+    .map(p => `<p>${escapeHtml(p)}</p>`).join('');
+  const takeawayHtml = data.takeaway
+    ? `<div class="section-block"><p class="section-heading">Conclusion / takeaway</p><div class="takeaway">${escapeHtml(data.takeaway)}</div></div>`
+    : '';
+
+  outputPanel.innerHTML = `
+    <p class="doc-eyebrow">${escapeHtml(data.doc_type || 'Document')}</p>
+    <h2 class="doc-title">${escapeHtml(data.title || 'Untitled')}</h2>
+    <div class="doc-meta">
+      <span>Length: <b>${escapeHtml(meta.length)}</b></span>
+      <span>Audience: <b>${escapeHtml(meta.audience)}</b></span>
+      ${meta.focus ? `<span>Focus: <b>${escapeHtml(meta.focus)}</b></span>` : ''}
+      ${meta.lang ? `<span>Language: <b>${escapeHtml(meta.lang)}</b></span>` : ''}
+    </div>
+
+    <div class="section-block">
+      <p class="section-heading">Key points</p>
+      <ul class="key-points">${keyPointsHtml}</ul>
+    </div>
+
+    <div class="section-block">
+      <p class="section-heading">Main summary</p>
+      <div class="summary-text">${summaryHtml}</div>
+    </div>
+
+    ${takeawayHtml}
+  `;
+}
+
+function tryParseJson(text) {
+  let cleaned = text.trim();
+  cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+  return JSON.parse(cleaned);
+}
+
+async function summarize() {
+  const doc = sourceText.value.trim();
+  if (!doc) {
+    renderError('paste some text or upload a document first.');
+    return;
+  }
+
+  const length = document.getElementById('lengthSelect').value;
+  const audience = document.getElementById('audienceSelect').value;
+  const focus = document.getElementById('focusInput').value.trim();
+  const lang = document.getElementById('langInput').value.trim();
+
+  let instruction = `Summarize the following document.\nRequested summary length: ${length}.\nTarget audience: ${audience}.`;
+  if (focus) instruction += `\nFocus specifically on: ${focus}.`;
+  if (lang) instruction += `\nWrite the output in this language: ${lang}.`;
+  instruction += `\n\nDOCUMENT:\n"""\n${doc}\n"""`;
+
+  summarizeBtn.disabled = true;
+  summarizeBtn.textContent = 'Reading…';
+  renderLoading();
+
+  try {
+    const response = await fetch(GEMINI_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: SYSTEM_PROMPT }]
+        },
+        contents: [
+          { role: 'user', parts: [{ text: instruction }] }
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2000,
+          response_mime_type: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`API request failed (${response.status}): ${errText.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error('empty response from model.');
+
+    let parsed;
+    try {
+      parsed = tryParseJson(rawText);
+    } catch (e) {
+      throw new Error('model did not return valid JSON. Try again.');
+    }
+
+    renderSummary(parsed, { length, audience, focus, lang });
+
+  } catch (err) {
+    renderError(err.message || String(err));
+  } finally {
+    summarizeBtn.disabled = false;
+    summarizeBtn.textContent = 'Summarize document';
+  }
+}
+
+summarizeBtn.addEventListener('click', summarize);
+</script>
+</body>
+</html>
